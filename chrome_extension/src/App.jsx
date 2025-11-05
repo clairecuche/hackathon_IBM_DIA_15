@@ -1,35 +1,21 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// src/App.jsx
+import React, { useState } from "react";
+import Button from "./components/button.jsx";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [query, setQuery] = useState("");
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div style={{ padding: "16px", width: "300px", fontFamily: "'Poppins', sans-serif" }}>
+      <h2>LLM CO2 Tracker</h2>
+
+      <Button
+        label="Submit"
+        onClick={() => alert(`Votre requête : ${query}`)}
+        disabled={query.trim() === ""}
+      />
+    </div>
+  );
 }
 
-export default App
+export default App;
