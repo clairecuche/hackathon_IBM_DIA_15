@@ -6,6 +6,7 @@ import Back from "./components/back.jsx";
 import NavBar from "./components/nav_bar.jsx";
 import DropdownButton from "./components/dropdown_button.jsx";
 import TopBar from "./components/topbar.jsx";
+import ConsumptionSelector from "./components/consuption_selector.jsx";
 
 function App() {
   const [query, setQuery] = useState("");
@@ -31,6 +32,11 @@ function App() {
       {/* Dropdown */}
       <div style={{ margin: "16px 0" }}>
         <DropdownButton initialText="Choisir une option" />
+      </div>
+
+      {/* ConsumptionSelector */}
+      <div style={{ margin: "16px 0" }}>
+        <ConsumptionSelector />
       </div>
 
       {/* Bouton Back */}
