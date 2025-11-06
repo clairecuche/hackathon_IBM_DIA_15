@@ -5,6 +5,7 @@ import TextInput from "./components/text_input.jsx";
 import Back from "./components/back.jsx";
 import NavBar from "./components/nav_bar.jsx";
 import DropdownButton from "./components/dropdown_button.jsx";
+import TopBar from "./components/topbar.jsx";
 
 function App() {
   const [query, setQuery] = useState("");
@@ -16,9 +17,13 @@ function App() {
         padding: "16px",
         width: "300px",
         fontFamily: "'Poppins', sans-serif",
+        backgroundColor: "#FCFBFC", 
       }}
     >
-      <h2 style={{ marginBottom: "16px" }}>LLM CO2 Tracker</h2>
+      {/* TopBar */}
+      <TopBar />
+
+      <h2 style={{ marginBottom: "16px", marginTop: "16px", color: "#212121" }}>LLM CO2 Tracker</h2>
 
       {/* NavBar */}
       <NavBar activeTab={activeTab} onTabChange={setActiveTab} />
