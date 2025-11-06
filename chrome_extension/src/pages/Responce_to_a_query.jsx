@@ -1,10 +1,10 @@
 import React from "react";
 import Back from "../components/back.jsx";
-import Consumption from "../components/consuption.jsx"; // ou ConsumptionWithSignal si tu veux les barres
-import GoogleResearch from "../components/googlesearch.jsx"; // <-- nouveau composant
+import Consumption from "../components/consuption.jsx";
+import GoogleResearch from "../components/googlesearch.jsx";
 import LeafFill from "../components/leaf.jsx";
 
-const ResponseToAQuery = ({ query, onTabChange, setCurrentQuery }) => {
+const ResponseToAQuery = ({ query, selectedZone, onTabChange, setCurrentQuery }) => {
   return (
     <div
       style={{
@@ -16,9 +16,7 @@ const ResponseToAQuery = ({ query, onTabChange, setCurrentQuery }) => {
         flexDirection: "column",
       }}
     >
-      {/* ----------------------------
-          Bouton Back
-          ---------------------------- */}
+      {/* Bouton Back */}
       <Back
         onClick={() => {
           setCurrentQuery(""); // réinitialise la variable
@@ -27,14 +25,13 @@ const ResponseToAQuery = ({ query, onTabChange, setCurrentQuery }) => {
       />
 
       <div style={{ borderBottom: "1px solid #CBC9C9", paddingBottom: "8px" }}>
-        <h3 style={{ padding: "12px 0px 6px 0px", borderBottom: "0px solid #CBC9C9" }}>
-          Your query
-        </h3>
+        <h3 style={{ padding: "12px 0px 6px 0px" }}>Your query</h3>
         <p>{query}</p>
 
-        <h3 style={{ padding: "12px 0px 6px 0px", borderBottom: "0px solid #CBC9C9" }}>
-          Response from Llama
-        </h3>
+        <h3 style={{ padding: "12px 0px 6px 0px" }}>Selected country</h3>
+        <p>{selectedZone || "No country selected"}</p>
+
+        <h3 style={{ padding: "12px 0px 6px 0px" }}>Response from Llama</h3>
         <p>La réponse de chat</p>
 
         {/* Consommation affichée avec valeur */}
@@ -44,20 +41,17 @@ const ResponseToAQuery = ({ query, onTabChange, setCurrentQuery }) => {
       <div style={{ marginTop: "16px" }}>
         <h2>Your consumption today</h2>
 
-        {/* ----------------------------
-            Google Research
-            ---------------------------- */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             gap: "12px",
             marginTop: "12px",
-            justifyContent: "center", // centre verticalement si hauteur définie
-            alignItems: "center",     // centre horizontalement
+            justifyContent: "center",
+            alignItems: "center",
           }}
         >
-          <GoogleResearch count={15} /> 
+          <GoogleResearch count={15} />
           <LeafFill value={50} />
         </div>
       </div>
@@ -66,4 +60,3 @@ const ResponseToAQuery = ({ query, onTabChange, setCurrentQuery }) => {
 };
 
 export default ResponseToAQuery;
-
