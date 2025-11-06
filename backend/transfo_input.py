@@ -23,7 +23,7 @@ def calculate_metrics_from_texts(prompt: str, response: str,
     """
     Calcule tous les indicateurs à partir du prompt et de la réponse.
     
-    Durées en nanosecondes (ns).
+    Durées en secondes (s).
     """
     # Validation des durées et utilisation d'une valeur minimale de 1ns si nécessaire
     load_duration = max(1, load_duration)
@@ -40,8 +40,8 @@ def calculate_metrics_from_texts(prompt: str, response: str,
     total_token_length = prompt_token_length + response_token_length
 
     # Calcul des vitesses en tokens/sec
-    prompt_speed_tps = prompt_token_length / (prompt_duration / 1e9)
-    response_speed_tps = response_token_length / (response_duration / 1e9)
+    prompt_speed_tps = prompt_token_length / prompt_duration
+    response_speed_tps = response_token_length / response_duration
 
     # Calcul de la durée totale
     total_inference_duration = load_duration + prompt_duration + response_duration
@@ -67,9 +67,9 @@ def calculate_metrics_from_texts(prompt: str, response: str,
 if __name__ == "__main__":
     prompt = "Bonjour, comment ça va ?"
     response = "Je vais bien, merci ! Et toi ?"
-    load_duration = 500000000        # ns
-    prompt_duration = 1000000000    # ns
-    response_duration = 2000000000  # ns
+    load_duration = 0.5        # s
+    prompt_duration = 1.0    # s
+    response_duration = 2.0  # s
     model_name = "codellama:7b"
 
     metrics = calculate_metrics_from_texts(prompt, response,
