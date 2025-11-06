@@ -8,11 +8,16 @@ import ResponseToAQuery from "./pages/Responce_to_a_query.jsx";
 import Settings from "./pages/Settings.jsx";
 
 function App() {
-  const [activeTab, setActiveTab] = useState("settings"); // première page : settings
+  const [activeTab, setActiveTab] = useState("settings");
   const [currentQuery, setCurrentQuery] = useState("");
   const [selectedZone, setSelectedZone] = useState("");
 
-  // Fonction pour envoyer les données au backend
+  // States pour stocker la réponse du backend
+  const [responseText, setResponseText] = useState("");
+  const [amountConsumption, setAmountConsumption] = useState(0);
+  const [hectareEq, setHectareEq] = useState(0);
+  const [pourcentage, setPourcentage] = useState(0);
+
   const sendToBackend = async (query, country) => {
     if (!query || !country) {
       alert("Veuillez remplir la requête et sélectionner un pays !");
@@ -22,16 +27,23 @@ function App() {
     const payload = { query, country };
 
     try {
-      const response = await fetch("https://ton-backend.com/api/endpoint", {
+      const response = await fetch("http://localhost:3000/api/endpoint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+
       const data = await response.json();
-      console.log("Réponse du backend :", data);
-      alert("Données envoyées avec succès !");
+
+      // Stockage dans les variables (states)
+      setResponseText(data.Response);
+      setAmountConsumption(data.amount_consumption);
+      setHectareEq(data.hectare_eq);
+      setPourcentage(data.pourcentage);
+
+      console.log("Données reçues :", data);
     } catch (error) {
       console.error("Erreur lors de l'envoi :", error);
       alert("Erreur lors de l'envoi au backend.");
@@ -67,20 +79,22 @@ function App() {
             onTabChange={setActiveTab}
             setCurrentQuery={setCurrentQuery}
             sendToBackend={sendToBackend}
-            selectedZone={selectedZone} // pour vérifier la sélection du pays
+            selectedZone={selectedZone}
           />
         )}
 
-        {activeTab === "dashboard" && (
-          <DashboardPage onTabChange={setActiveTab} />
-        )}
+        {activeTab === "dashboard" && <DashboardPage onTabChange={setActiveTab} />}
 
         {activeTab === "response" && (
           <ResponseToAQuery
             query={currentQuery}
             onTabChange={setActiveTab}
             setCurrentQuery={setCurrentQuery}
-            selectedZone={selectedZone} // pour l’afficher dans ResponseToAQuery
+            selectedZone={selectedZone}
+            responseText={responseText}
+            amountConsumption={amountConsumption}
+            hectareEq={hectareEq}
+            pourcentage={pourcentage}
           />
         )}
       </div>
