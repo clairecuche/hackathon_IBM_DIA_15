@@ -22,7 +22,7 @@ Run
 
 ```bash
 export IBM_API_KEY="IAM"   # PowerShell: $env:IBM_API_KEY = "<your key>"
-uvicorn backend.app:app --reload --port 8000
+uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 Testing the IBM API and the backend

@@ -1,16 +1,3 @@
-"""FastAPI app exposing /predict that uses the IBM deployment to score prompts
-and returns the requested LLM consumption metrics together with the user
-provided energy mix.
-
-Usage:
-  export IBM_API_KEY="<your api key>"
-  uvicorn backend.app:app --reload --port 8000
-
-POST /predict
-  body: {"prompt": "...", "energy_mix": {"solar": 0.5, "wind": 0.3, "grid": 0.2}}
-  returns: {"metrics": {...}, "energy_mix": {...}, "raw_response": {...}}
-
-"""
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
@@ -54,13 +41,10 @@ app = FastAPI(title="LLM Consumption Predictor")
 
 
 class PredictRequest(BaseModel):
-    # Optional prompt text. If provided and no metric fields are supplied the
-    # server will call the IBM deployment to obtain metrics. If metrics are
-    # supplied directly (see fields below) the server will use those values
-    # instead and skip the IBM call.
+    
     prompt: Optional[str] = None
 
-    # Metric fields (all optional) — client may supply these directly.
+    
     prompt_speed_tps: Optional[float] = None
     response_speed_tps: Optional[float] = None
     load_duration: Optional[float] = None
@@ -71,20 +55,14 @@ class PredictRequest(BaseModel):
     total_duration: Optional[float] = None
     prompt_duration: Optional[float] = None
     prompt_token_length: Optional[int] = None
-    # allow client to provide a model name which will be mapped to an integer
-    # code using MODEL_NAME_MAP. If the client supplies model_name_encoded
-    # directly it will be used as-is.
+   
     model_name_encoded: Optional[str] = None
     model_name: Optional[str] = None
 
-
-    # the client can either provide an explicit energy_mix, or provide a
-    # `country` and we'll compute a representative energy mix server-side.
     country: Optional[str] = None
 
 
 class PredictResponse(BaseModel):
-    metrics: Dict[str, Optional[Any]]
     raw_response: Optional[Dict[str, Any]] = None
 
 @app.get("/")
@@ -119,32 +97,8 @@ def predict(req: PredictRequest):
     # obtain metrics. If neither metrics nor prompt are provided, return an
     # error.
 
-    # Build metrics from request fields if any metric is present
-    metric_fields = [
-        "prompt_speed_tps",
-        "response_speed_tps",
-        "load_duration",
-        "total_inference_duration",
-        "response_duration",
-        "total_token_length",
-        "response_token_length",
-        "total_duration",
-        "prompt_duration",
-        "prompt_token_length",
-        "model_name_encoded",
-    ]
-
-    provided_any_metric = any(getattr(req, f) is not None for f in metric_fields)
-
     raw = None
-    metrics: Dict[str, Optional[Any]] = {k: None for k in metric_fields}
 
-    # Helper: build a values list (one row) matching FIXED_INPUT_FIELDS order.
-    # Behaviour:
-    # - If the client provided `input_values` (and optionally `input_fields`),
-    #   we reorder/match those into FIXED_INPUT_FIELDS.
-    # - Otherwise we construct a single row from the explicit metric fields
-    #   present on the request (or sensible defaults).
     def build_ordered_values():
         # If client provided raw input_values, try to reorder them to the
         # FIXED_INPUT_FIELDS order.
@@ -201,78 +155,56 @@ def predict(req: PredictRequest):
 
         return [row]
 
-    if provided_any_metric:
-        # If the client provided explicit IBM input_fields/values, forward them
-        # to IBM and extract metrics from the model response.
-        # Build ordered values according to FIXED_INPUT_FIELDS and always send
-        # the payload in that fixed order (this mirrors tests/test_token.py).
-        api_key = os.environ.get("IBM_API_KEY")
-        if not api_key:
-            raise HTTPException(status_code=500, detail="IBM_API_KEY not set in environment")
-        try:
-            values = build_ordered_values()
-            raw = ibm_client.score_prompt(
-                prompt=None,
-                api_key=api_key,
-                fields=FIXED_INPUT_FIELDS,
-                values=values,
-            )
-        except Exception as e:
-            tb = traceback.format_exc()
-            raise HTTPException(status_code=502, detail=f"Error calling IBM ML: {e}\n{tb}")
+    # Always call IBM with the fixed fields/ordered values
+    api_key = os.environ.get("IBM_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="IBM_API_KEY not set in environment")
+    try:
+        values = build_ordered_values()
+        raw = ibm_client.score_prompt(
+            prompt=None,
+            api_key=api_key,
+            fields=FIXED_INPUT_FIELDS,
+            values=values,
+        )
+    except Exception as e:
+        tb = traceback.format_exc()
+        raise HTTPException(status_code=502, detail=f"Error calling IBM ML: {e}\n{tb}")
 
-        metrics = ibm_client.extract_metrics(raw, prompt=req.prompt)
-        # If the request included a human-readable model_name or an explicit
-        # model_name_encoded prefer those values to override the scored output.
-        if req.model_name:
-            code = MODEL_NAME_MAP.get(req.model_name.strip().lower())
-            if code is not None:
-                metrics["model_name_encoded"] = code
-        if getattr(req, "model_name_encoded", None) is not None:
-            metrics["model_name_encoded"] = getattr(req, "model_name_encoded")
-    else:
-        # need prompt to call IBM
-        if not req.prompt:
-            raise HTTPException(status_code=400, detail="Either supply metric fields or a prompt to score")
+    metrics = ibm_client.extract_metrics(raw, prompt=req.prompt)
+    # If the request included a human-readable model_name or an explicit
+    # model_name_encoded prefer those values to override the scored output.
+    if req.model_name:
+        code = MODEL_NAME_MAP.get(req.model_name.strip().lower())
+        if code is not None:
+            metrics["model_name_encoded"] = code
+    if getattr(req, "model_name_encoded", None) is not None:
+        metrics["model_name_encoded"] = getattr(req, "model_name_encoded")
 
-        api_key = os.environ.get("IBM_API_KEY")
-        if not api_key:
-            raise HTTPException(status_code=500, detail="IBM_API_KEY not set in environment")
 
-        try:
-            # Always format the scoring request using the fixed fields order.
-            try:
-                values = build_ordered_values()
-                raw = ibm_client.score_prompt(
-                    prompt=None,
-                    api_key=api_key,
-                    fields=FIXED_INPUT_FIELDS,
-                    values=values,
-                )
-            except Exception as e:
-                tb = traceback.format_exc()
-                raise HTTPException(status_code=502, detail=f"Error calling IBM ML: {e}\n{tb}")
-        except Exception as e:
-            tb = traceback.format_exc()
-            raise HTTPException(status_code=502, detail=f"Error calling IBM ML: {e}\n{tb}")
+    prediction_energy = 0.0
 
-        metrics = ibm_client.extract_metrics(raw, prompt=req.prompt)
-        # if the client supplied a human model_name along with the prompt
-        # use it to override model_name_encoded if mapping exists
-        if req.model_name:
-            code = MODEL_NAME_MAP.get(req.model_name.strip().lower())
-            if code is not None:
-                metrics["model_name_encoded"] = code
+    try:
+        if (raw and raw.get("predictions") and len(raw["predictions"]) > 0
+            and raw["predictions"][0].get("values")
+            and len(raw["predictions"][0]["values"]) > 0
+            and len(raw["predictions"][0]["values"][0]) > 0):
+            prediction_energy= raw["predictions"][0]["values"][0][0]
+        
+    except Exception:
+        prediction_energy= None
 
+    print(prediction_energy)
+    resp = {
+        "raw_response": raw,
+        
+    }
+
+    
     # Determine energy mix: prefer explicit energy_mix from client, else
     # compute from provided country, else None
     computed_mix = None
-    computed_mix = energy.get_energy_mix_for_country(req.country)
-
-    resp = {
-        "metrics": metrics,
-        "raw_response": raw,
-    }
+    computed_mix = energy.get_energy_mix_for_country(req.country,prediction_energy)
 
     # extract total consumption reported by the model (seconds) and attach
     try:
