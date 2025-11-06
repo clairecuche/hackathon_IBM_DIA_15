@@ -181,14 +181,30 @@ def predict(req: PredictRequest):
     if getattr(req, "model_name_encoded", None) is not None:
         metrics["model_name_encoded"] = getattr(req, "model_name_encoded")
 
+
+    prediction_energy = 0.0
+
+    try:
+        if (raw and raw.get("predictions") and len(raw["predictions"]) > 0
+            and raw["predictions"][0].get("values")
+            and len(raw["predictions"][0]["values"]) > 0
+            and len(raw["predictions"][0]["values"][0]) > 0):
+            prediction_energy= raw["predictions"][0]["values"][0][0]
+        
+    except Exception:
+        prediction_energy= None
+
+    print(prediction_energy)
+    resp = {
+        "raw_response": raw,
+        
+    }
+
+    
     # Determine energy mix: prefer explicit energy_mix from client, else
     # compute from provided country, else None
     computed_mix = None
-    computed_mix = energy.get_energy_mix_for_country(req.country)
-
-    resp = {
-        "raw_response": raw,
-    }
+    computed_mix = energy.get_energy_mix_for_country(req.country,prediction_energy)
 
     # extract total consumption reported by the model (seconds) and attach
     try:
