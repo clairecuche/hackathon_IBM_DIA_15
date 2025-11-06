@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Button from "./components/button.jsx";
 import TextInput from "./components/text_input.jsx";
+import Back from "./components/back.jsx";
 
 function App() {
   const [query, setQuery] = useState("");
@@ -8,6 +9,10 @@ function App() {
   return (
     <div style={{ padding: "16px", width: "300px", fontFamily: "'Poppins', sans-serif" }}>
       <h2>LLM CO2 Tracker</h2>
+
+      <div style={{ padding: "16px", width: "300px", fontFamily: "'Poppins', sans-serif" }}>
+        <Back onClick={() => alert("Retour !")} />
+      </div>
 
       <TextInput
         label="Requête LLM"
