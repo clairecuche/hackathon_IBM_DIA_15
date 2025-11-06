@@ -7,7 +7,7 @@ MODEL_ENCODING = {
     "codellama:7b": 2,
     "gemma:2b": 3,
     "gemma:7b": 4,
-    "llama3": 5,
+    "llama3.2": 5,
     "llama3:70b": 6
 }
 
