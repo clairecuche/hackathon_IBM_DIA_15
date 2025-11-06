@@ -10,9 +10,11 @@ const Button = ({ label, onClick, disabled }) => {
         padding: "10px 10px",
         borderRadius: "8px",
         border: "none",
-        backgroundColor: disabled ? "#71B071" : "#71B071",
+        backgroundColor: "#71B071",
         color: "#FCFBFC",
-        cursor: disabled ? "#B8D7B8" : "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.5 : 1,
+        transition: "opacity 0.3s",
         margin: "0px",
       }}
     >
