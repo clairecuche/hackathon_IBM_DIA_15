@@ -11,33 +11,49 @@ const NavBar = ({ activeTab = "query", onTabChange }) => {
       style={{
         display: "flex",
         justifyContent: "space-around",
-        alignItems: "center",
-        width: "100%", // ✅ prend toute la largeur
+        position: "relative", // ✅ nécessaire pour la ligne
+        width: "100%",
         backgroundColor: "#F1F7F1",
         fontFamily: "'Poppins', sans-serif",
         borderRadius: "8px",
         overflow: "hidden",
+        padding: "0 0", // pas de padding vertical
       }}
     >
-      {tabs.map((tab) => (
+      {tabs.map((tab, index) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
           style={{
-            flex: 1, // ✅ chaque bouton prend 50%
+            flex: 1,
             padding: "10px 0",
             background: "transparent",
             border: "none",
-            borderBottom:
-              activeTab === tab.id ? "2px solid #527F52" : "2px solid transparent", // ✅ souligne l’actif
             color: activeTab === tab.id ? "#527F52" : "#71B071",
             fontWeight: activeTab === tab.id ? 600 : 400,
             cursor: "pointer",
-            transition: "all 0.2s ease",
-            borderRadius: "0px",
+            position: "relative", // ✅ pour positionner la ligne
+            fontSize: "14px",
+            transition: "color 0.5s ease",
           }}
         >
           {tab.label}
+
+          {/* Ligne animée */}
+          {activeTab === tab.id && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                width: "100%",
+                height: "2px",
+                backgroundColor: "#527F52",
+                borderRadius: "2px 2px 0 0",
+                transition: "all 0.5s ease",
+              }}
+            />
+          )}
         </button>
       ))}
     </nav>
