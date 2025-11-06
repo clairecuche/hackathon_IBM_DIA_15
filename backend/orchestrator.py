@@ -172,6 +172,37 @@ def process_prompt(
             
             timing.log_step("co2_calc_end")
             print(f"✅ Émissions CO2: {result.co2_emissions:.6f} kgCO2e")
+
+        # Use total_duration (in seconds) for equivalents (with fallback to timings)
+        tm = result.transformed_metrics or {}
+        duration_seconds = None
+        if tm.get("total_duration") is not None:
+            try:
+                duration_seconds = float(tm["total_duration"])
+            except Exception:
+                duration_seconds = None
+
+        # fallback: approximate from recorded timings if available
+        if duration_seconds is None and result.timings:
+            try:
+                duration_seconds = sum(float(v) for v in result.timings.values() if v is not None)
+            except Exception:
+                duration_seconds = None
+
+        # compute equivalents if possible, otherwise store empty dict so API returns {} not null
+        equivalents = {}
+        if result.co2_emissions is not None and duration_seconds and duration_seconds > 0:
+            acres = energy.forest_area_acres(result.co2_emissions, duration_seconds)
+            searches = energy.co2e_to_google_searches(result.co2_emissions)
+            equivalents = {
+                "forest_area_acres": acres,
+                "google_searches": searches,
+                "duration_seconds_used": duration_seconds,
+            }
+
+        # always set the key (even if empty) so callers don't get null
+        result.raw_responses["equivalents"] = equivalents
+
         
         # Stockage des timings finaux
         result.timings = timing.get_timings()
