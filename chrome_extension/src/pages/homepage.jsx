@@ -6,10 +6,9 @@ const HomePage = ({ onTabChange, setCurrentQuery }) => {
   const [query, setQuery] = useState("");
 
   return (
-    <div style={{ width: "100%", padding: "16px", boxSizing: "border-box" }}>
-      <h2>LLM CO2 Tracker</h2>
+    <div style={{ width: "100%", padding: "16px", boxSizing: "border-box", gap: "20px", display: "flex", flexDirection: "column" }}>
+      <h2>Type your query</h2>
       <TextInput
-          label="Requête LLM"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Type your query here..."
