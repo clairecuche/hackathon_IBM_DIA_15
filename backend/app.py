@@ -41,6 +41,8 @@ class PredictionResponse(BaseModel):
     llama_metrics: Dict[str, Any]
     transformed_metrics: Optional[Dict[str, Any]] = None
     raw_ibm_response: Optional[Dict[str, Any]] = None
+    equivalents: Optional[Dict[str, Any]] = None
+
 
 
 @app.post("/predict", response_model=PredictionResponse)
@@ -82,7 +84,8 @@ async def predict(req: PredictRequest) -> PredictionResponse:
             processing_time=result.timings,
             llama_metrics=result.llama_metrics,
             transformed_metrics=result.transformed_metrics,
-            raw_ibm_response=result.raw_responses.get("ibm")
+            raw_ibm_response=result.raw_responses.get("ibm"),
+            equivalents=result.raw_responses.get("equivalents")
         )
         
     except RuntimeError as e:

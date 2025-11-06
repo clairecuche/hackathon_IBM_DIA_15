@@ -65,3 +65,27 @@ def compute_co2e_kg(
     energy_with_pue = energy_consumption_llm_total_kwh * pue
     kg_co2e = energy_with_pue * ef
     return kg_co2e
+
+def forest_area_acres(co2e_kg, duration_seconds, sequestration_rate_per_acre=1000):
+    """
+    Estimate acres of forest required to offset CO₂e emissions.
+
+    Parameters:
+        co2e_kg (float): total emissions in kilograms of CO₂e
+        duration_seconds (float): duration of emissions in seconds
+        sequestration_rate_per_acre (float): CO₂ absorbed per acre per year (kg CO₂/acre/year)
+                                             default = 1000 kg CO₂/year/acre
+
+    Returns:
+        float: acres of forest required
+    """
+    SECONDS_PER_YEAR = 31_536_000
+    years = duration_seconds / SECONDS_PER_YEAR
+    return co2e_kg / (sequestration_rate_per_acre * years)
+
+def co2e_to_google_searches(co2e_kg, co2_per_search=0.00123):
+    """
+    Convert CO₂e (in kg) to equivalent number of Google searches.
+    Default emission per search = 1.23 g CO₂e (Everyone.Eco)
+    """
+    return co2e_kg / co2_per_search
