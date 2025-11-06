@@ -6,7 +6,7 @@ Orchestrateur central qui gère le flux complet :
 4. Prédiction énergie via IBM
 5. Calcul CO2 si pays fourni
 """
-from typing import Dict, Any, Optional, Tuple
+from typing import Dict, Any, Optional
 import time
 from datetime import datetime
 import json
@@ -17,8 +17,9 @@ from . import transfo_input
 from . import ibm_client
 from . import energy
 
-# Structure pour stocker les logs de timing de chaque étape
+
 class TimingLogger:
+    """Structure pour stocker les logs de timing de chaque étape"""
     def __init__(self):
         self.start_time = time.time_ns()
         self.steps = {}
@@ -28,6 +29,7 @@ class TimingLogger:
     
     def get_timings(self) -> Dict[str, float]:
         return {k: v/1e9 for k, v in self.steps.items()}  # convertit en secondes
+
 
 class ProcessingResult:
     """Classe pour stocker et accéder facilement aux résultats de chaque étape"""
@@ -40,20 +42,23 @@ class ProcessingResult:
         self.timings: Dict[str, float] = {}
         self.raw_responses: Dict[str, Any] = {}
 
+
 def process_prompt(
     prompt: str,
-    model_name: str = "codellama:7b",
+    model_name: str = "llama3.2",
     country: Optional[str] = None,
-    log_file: Optional[str] = "logs/processing.jsonl"
+    log_file: Optional[str] = "logs/processing.jsonl",
+    temperature: float = 0.7
 ) -> ProcessingResult:
     """
     Fonction principale qui orchestre tout le flux de traitement.
     
     Args:
         prompt: Le texte à envoyer à LLAMA
-        model_name: Le modèle à utiliser (default: codellama:7b)
+        model_name: Le modèle à utiliser (llama3.2, llama3.1, codellama:7b, etc.)
         country: Code pays optionnel pour calcul CO2
         log_file: Chemin pour sauvegarder les logs (default: logs/processing.jsonl)
+        temperature: Créativité du modèle (0-1)
     
     Returns:
         ProcessingResult avec tous les résultats intermédiaires et finaux
@@ -62,16 +67,23 @@ def process_prompt(
     result = ProcessingResult()
     
     try:
-        # 1. Appel à LLAMA
+        # 1. Appel à LLAMA via Ollama
+        print(f"📡 Appel à Llama ({model_name})...")
         timing.log_step("llama_start")
+        
         result.llama_response, result.llama_metrics = llama_client.call_llama(
             prompt=prompt,
-            model_name=model_name
+            model_name=model_name,
+            temperature=temperature
         )
+        
         timing.log_step("llama_end")
+        print(f"✅ Réponse Llama reçue ({len(result.llama_response)} caractères)")
         
         # 2. Transformation des métriques
+        print("🔄 Transformation des métriques...")
         timing.log_step("transform_start")
+        
         result.transformed_metrics = transfo_input.calculate_metrics_from_texts(
             prompt=prompt,
             response=result.llama_response,
@@ -80,10 +92,13 @@ def process_prompt(
             response_duration=result.llama_metrics["response_duration"],
             model_name=model_name
         )
+        
         timing.log_step("transform_end")
+        print("✅ Métriques transformées")
         
         # 3. Préparation payload IBM dans le bon ordre
         timing.log_step("ibm_prep_start")
+        
         fields = [
             "COLUMN1",
             "prompt_speed_tps",
@@ -113,10 +128,13 @@ def process_prompt(
             result.transformed_metrics["prompt_token_length"],
             result.transformed_metrics["model_name_encoded"]
         ]]
+        
         timing.log_step("ibm_prep_end")
         
         # 4. Appel IBM pour prédiction énergie
+        print("🔮 Appel à IBM Watson pour prédiction d'énergie...")
         timing.log_step("ibm_call_start")
+        
         api_key = os.environ.get("IBM_API_KEY")
         if not api_key:
             raise RuntimeError("IBM_API_KEY not set in environment")
@@ -127,6 +145,7 @@ def process_prompt(
             fields=fields,
             values=values
         )
+        
         result.raw_responses["ibm"] = raw_ibm
         
         # Extraction de la prédiction
@@ -135,16 +154,24 @@ def process_prompt(
             and raw_ibm["predictions"][0].get("values")
             and len(raw_ibm["predictions"][0]["values"]) > 0):
             result.ibm_prediction = raw_ibm["predictions"][0]["values"][0][0]
+            print(f"✅ Prédiction énergie: {result.ibm_prediction:.6f} kWh")
+        else:
+            print("⚠️  Aucune prédiction d'énergie reçue d'IBM")
+            
         timing.log_step("ibm_call_end")
         
         # 5. Calcul CO2 si pays fourni
         if country:
+            print(f"🌍 Calcul des émissions CO2 pour {country}...")
             timing.log_step("co2_calc_start")
+            
             result.co2_emissions = energy.compute_co2e_kg(
                 energy_consumption_llm_total_kwh=result.ibm_prediction if result.ibm_prediction is not None else 0.0,
                 country=country
             )
+            
             timing.log_step("co2_calc_end")
+            print(f"✅ Émissions CO2: {result.co2_emissions:.6f} kgCO2e")
         
         # Stockage des timings finaux
         result.timings = timing.get_timings()
@@ -163,13 +190,16 @@ def process_prompt(
                 "co2_emissions": result.co2_emissions,
                 "timings": result.timings
             }
-            with open(log_file, "a") as f:
-                f.write(json.dumps(log_entry) + "\n")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
         
+        print("✅ Traitement terminé avec succès")
         return result
         
     except Exception as e:
-        # Log l'erreur mais ne la propage pas
+        # Log l'erreur
+        print(f"❌ Erreur lors du traitement: {str(e)}")
+        
         if log_file:
             os.makedirs(os.path.dirname(log_file), exist_ok=True)
             error_entry = {
@@ -186,8 +216,44 @@ def process_prompt(
                     "timings": timing.get_timings()
                 }
             }
-            with open(log_file, "a") as f:
-                f.write(json.dumps(error_entry) + "\n")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(error_entry, ensure_ascii=False) + "\n")
         
         # Propage l'erreur pour gestion par l'appelant
         raise
+
+
+# Test si exécuté directement
+if __name__ == "__main__":
+    print("\n" + "="*70)
+    print("🧪 TEST DE L'ORCHESTRATEUR")
+    print("="*70 + "\n")
+    
+    # Test avec un prompt simple
+    test_prompt = "Explique-moi ce qu'est le machine learning en 2 phrases."
+    
+    try:
+        result = process_prompt(
+            prompt=test_prompt,
+            model_name="llama3.2",
+            country="France",
+            temperature=0.7
+        )
+        
+        print("\n" + "="*70)
+        print("📊 RÉSULTATS FINAUX")
+        print("="*70)
+        print(f"\n💬 Prompt: {test_prompt}")
+        print(f"\n🤖 Réponse Llama:\n{result.llama_response}")
+        print(f"\n⚡ Consommation énergétique: {result.ibm_prediction:.6f} kWh")
+        print(f"🌍 Émissions CO2: {result.co2_emissions:.6f} kgCO2e")
+        print(f"\n⏱️  Temps de traitement:")
+        for step, duration in result.timings.items():
+            print(f"  - {step}: {duration:.3f}s")
+        
+        print("\n✅ Test réussi!")
+        
+    except Exception as e:
+        print(f"\n❌ Test échoué: {str(e)}")
+        import traceback
+        traceback.print_exc()
