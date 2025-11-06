@@ -1,98 +1,84 @@
+"""
+FastAPI application qui expose l'endpoint de prédiction.
+Utilise l'orchestrateur pour gérer le flux complet de traitement.
+"""
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any, Optional, List
+from typing import Dict, Optional, Union, List, Any
 import os
-import traceback
 
-from . import ibm_client
-from . import energy
-from . import predictor
+from . import orchestrator
 
-# Map human-friendly model names to integer codes used by your model
-MODEL_NAME_MAP = {
-    "codellama": 0,
-    "codellama:70b": 1,
-    "codellama:7b": 2,
-    "gemma:2b": 3,
-    "gemma:7b": 4,
-    "llama3": 5,
-    "llama3:70b": 6,
-}
-
-# Fixed input_fields order expected by the deployment (must be sent in this
-# exact order). We always format the scoring payload using this order so the
-# server will behave like the working `tests/test_token.py` script.
-FIXED_INPUT_FIELDS = [
-    "COLUMN1",
-    "prompt_speed_tps",
-    "response_speed_tps",
-    "load_duration",
-    "total_inference_duration",
-    "response_duration",
-    "total_token_length",
-    "response_token_length",
-    "total_duration",
-    "prompt_duration",
-    "prompt_token_length",
-    "model_name_encoded",
-]
-
-app = FastAPI(title="LLM Consumption Predictor")
-
+app = FastAPI(title="LLM Energy & CO2 Predictor")
 
 class PredictRequest(BaseModel):
-    
-    prompt: Optional[str] = None
-
-    
-    prompt_speed_tps: Optional[float] = None
-    response_speed_tps: Optional[float] = None
-    load_duration: Optional[float] = None
-    total_inference_duration: Optional[float] = None
-    response_duration: Optional[float] = None
-    total_token_length: Optional[int] = None
-    response_token_length: Optional[int] = None
-    total_duration: Optional[float] = None
-    prompt_duration: Optional[float] = None
-    prompt_token_length: Optional[int] = None
-   
-    model_name_encoded: Optional[str] = None
-    model_name: Optional[str] = None
-
+    prompt: str
+    model_name: str = "codellama:7b"
     country: Optional[str] = None
 
+class PredictionResponse(BaseModel):
+    llama_response: str
+    energy_consumption_kwh: float
+    co2_emissions: Optional[float] = None  # kgCO2e
+    processing_time: Dict[str, float]
+    raw_response: Optional[Dict[str, Any]] = None  # Pour stocker la réponse brute d'IBM
 
-class PredictResponse(BaseModel):
-    raw_response: Optional[Dict[str, Any]] = None
-    consumption: Optional[Dict[str, Any]] = None
-    computed_co2e_kg: Optional[float] = None
+@app.post("/predict", response_model=PredictionResponse)
+async def predict(req: PredictRequest) -> PredictionResponse:
+    """
+    Point d'entrée principal qui reçoit un prompt et retourne la prédiction d'énergie et CO2.
+    
+    Args:
+        req: PredictRequest contenant le prompt, nom du modèle et pays optionnel
+    
+    Returns:
+        PredictionResponse avec la réponse LLAMA, consommation énergétique et CO2 si pays fourni
+    """
+    try:
+        # Appel de l'orchestrateur qui gère tout le flux
+        result = orchestrator.process_prompt(
+            prompt=req.prompt,
+            model_name=req.model_name,
+            country=req.country
+        )
+        
+        # Construction de la réponse
+        return PredictionResponse(
+            llama_response=result.llama_response,
+            energy_consumption_kwh=result.ibm_prediction 
+                if result.ibm_prediction is not None else 0.0,
+            co2_emissions=result.co2_emissions,
+            processing_time=result.timings,
+            raw_response=result.raw_responses.get("ibm")
+        )
+        
+    except Exception as e:
+        # Log l'erreur et renvoie une réponse 500
+        print(f"Error processing request: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error processing request: {str(e)}"
+        )
 
 @app.get("/")
 def root():
     """Simple root to make visiting / in a browser useful instead of 404."""
     return {
-        "message": "LLM Consumption Predictor",
+        "message": "LLM Energy & CO2 Predictor",
         "endpoints": {
             "predict": {
                 "method": "POST",
                 "path": "/predict",
-                "description": "Send JSON {\"prompt\":..., \"energy_mix\": {...}}",
+                "description": "Send JSON {\"prompt\": \"your text\", \"model_name\": \"codellama:7b\", \"country\": \"France\"}",
             },
             "docs": {"path": "/docs", "description": "Interactive OpenAPI docs"},
         },
     }
 
-
 @app.get("/favicon.ico")
 def favicon():
-    # return no content to avoid 404 in browser logs
-    from fastapi.responses import Response
-
-    return Response(status_code=204)
-
-
-@app.post("/predict", response_model=PredictResponse)
-def predict(req: PredictRequest):
+    """Return no content to avoid 404 in browser logs"""
+    return {}
     # ensure API key available
     # If the client provided metric fields directly, use them and skip the
     # IBM call. Otherwise, if a prompt is present, call the IBM deployment to
@@ -203,8 +189,9 @@ def predict(req: PredictRequest):
     computed_co2e_kg = energy.compute_co2e_kg(prediction_energy, req.country)
 
     resp = {
-        "raw_response": raw,
+        "prediction_energy": prediction_energy,
         "computed_co2e_kg" : computed_co2e_kg,
+
         
     }
 
