@@ -13,7 +13,7 @@ POST /predict
 """
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 import os
 import traceback
 
@@ -31,6 +31,24 @@ MODEL_NAME_MAP = {
     "llama3": 5,
     "llama3:70b": 6,
 }
+
+# Fixed input_fields order expected by the deployment (must be sent in this
+# exact order). We always format the scoring payload using this order so the
+# server will behave like the working `tests/test_token.py` script.
+FIXED_INPUT_FIELDS = [
+    "COLUMN1",
+    "prompt_speed_tps",
+    "response_speed_tps",
+    "load_duration",
+    "total_inference_duration",
+    "response_duration",
+    "total_token_length",
+    "response_token_length",
+    "total_duration",
+    "prompt_duration",
+    "prompt_token_length",
+    "model_name_encoded",
+]
 
 app = FastAPI(title="LLM Consumption Predictor")
 
@@ -58,6 +76,7 @@ class PredictRequest(BaseModel):
     # directly it will be used as-is.
     model_name_encoded: Optional[str] = None
     model_name: Optional[str] = None
+
 
     # the client can either provide an explicit energy_mix, or provide a
     # `country` and we'll compute a representative energy mix server-side.
@@ -120,16 +139,95 @@ def predict(req: PredictRequest):
     raw = None
     metrics: Dict[str, Optional[Any]] = {k: None for k in metric_fields}
 
+    # Helper: build a values list (one row) matching FIXED_INPUT_FIELDS order.
+    # Behaviour:
+    # - If the client provided `input_values` (and optionally `input_fields`),
+    #   we reorder/match those into FIXED_INPUT_FIELDS.
+    # - Otherwise we construct a single row from the explicit metric fields
+    #   present on the request (or sensible defaults).
+    def build_ordered_values():
+        # If client provided raw input_values, try to reorder them to the
+        # FIXED_INPUT_FIELDS order.
+        if getattr(req, "input_values", None):
+            provided_fields = getattr(req, "input_fields", None) or []
+            # take only the first row if multiple provided, and map by index
+            provided_row = req.input_values[0] if req.input_values else []
+            # Build a row following FIXED_INPUT_FIELDS by matching indexes
+            ordered_row = []
+            for f in FIXED_INPUT_FIELDS:
+                if f in provided_fields:
+                    idx = provided_fields.index(f)
+                    # safe-get value from provided_row
+                    try:
+                        ordered_row.append(provided_row[idx])
+                    except Exception:
+                        ordered_row.append(0)
+                else:
+                    # field not present in provided_fields -> fill from
+                    # explicit metric attributes or sensible defaults
+                    if f == "COLUMN1":
+                        ordered_row.append(1)
+                    elif f == "model_name_encoded":
+                        # prefer explicit numeric encoded value, else map name
+                        if getattr(req, "model_name_encoded", None) is not None:
+                            ordered_row.append(req.model_name_encoded)
+                        elif getattr(req, "model_name", None):
+                            code = MODEL_NAME_MAP.get(req.model_name.strip().lower())
+                            ordered_row.append(code if code is not None else 0)
+                        else:
+                            ordered_row.append(0)
+                    else:
+                        val = getattr(req, f, None)
+                        ordered_row.append(val if val is not None else 0)
+            return [ordered_row]
+
+        # No input_values provided: build from individual metric fields
+        row = []
+        for f in FIXED_INPUT_FIELDS:
+            if f == "COLUMN1":
+                row.append(1)
+                continue
+            if f == "model_name_encoded":
+                if getattr(req, "model_name_encoded", None) is not None:
+                    row.append(req.model_name_encoded)
+                elif getattr(req, "model_name", None):
+                    code = MODEL_NAME_MAP.get(req.model_name.strip().lower())
+                    row.append(code if code is not None else 0)
+                else:
+                    row.append(0)
+                continue
+            # other numeric metric fields
+            row.append(getattr(req, f, 0) or 0)
+
+        return [row]
+
     if provided_any_metric:
-        for f in metric_fields:
-            metrics[f] = getattr(req, f)
-        # if client provided a human-friendly model_name, map it to an int
+        # If the client provided explicit IBM input_fields/values, forward them
+        # to IBM and extract metrics from the model response.
+        # Build ordered values according to FIXED_INPUT_FIELDS and always send
+        # the payload in that fixed order (this mirrors tests/test_token.py).
+        api_key = os.environ.get("IBM_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="IBM_API_KEY not set in environment")
+        try:
+            values = build_ordered_values()
+            raw = ibm_client.score_prompt(
+                prompt=None,
+                api_key=api_key,
+                fields=FIXED_INPUT_FIELDS,
+                values=values,
+            )
+        except Exception as e:
+            tb = traceback.format_exc()
+            raise HTTPException(status_code=502, detail=f"Error calling IBM ML: {e}\n{tb}")
+
+        metrics = ibm_client.extract_metrics(raw, prompt=req.prompt)
+        # If the request included a human-readable model_name or an explicit
+        # model_name_encoded prefer those values to override the scored output.
         if req.model_name:
             code = MODEL_NAME_MAP.get(req.model_name.strip().lower())
-            # only set when mapping exists
             if code is not None:
                 metrics["model_name_encoded"] = code
-        # if client provided model_name_encoded explicitly, prefer that
         if getattr(req, "model_name_encoded", None) is not None:
             metrics["model_name_encoded"] = getattr(req, "model_name_encoded")
     else:
@@ -142,7 +240,18 @@ def predict(req: PredictRequest):
             raise HTTPException(status_code=500, detail="IBM_API_KEY not set in environment")
 
         try:
-            raw = ibm_client.score_prompt(req.prompt, api_key=api_key)
+            # Always format the scoring request using the fixed fields order.
+            try:
+                values = build_ordered_values()
+                raw = ibm_client.score_prompt(
+                    prompt=None,
+                    api_key=api_key,
+                    fields=FIXED_INPUT_FIELDS,
+                    values=values,
+                )
+            except Exception as e:
+                tb = traceback.format_exc()
+                raise HTTPException(status_code=502, detail=f"Error calling IBM ML: {e}\n{tb}")
         except Exception as e:
             tb = traceback.format_exc()
             raise HTTPException(status_code=502, detail=f"Error calling IBM ML: {e}\n{tb}")
