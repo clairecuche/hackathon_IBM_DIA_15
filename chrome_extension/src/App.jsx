@@ -7,6 +7,7 @@ import NavBar from "./components/nav_bar.jsx";
 import DropdownButton from "./components/dropdown_button.jsx";
 import TopBar from "./components/topbar.jsx";
 import ConsumptionSelector from "./components/consuption_selector.jsx";
+import TextButton from "./components/textbutton.jsx";
 
 function App() {
   const [query, setQuery] = useState("");
@@ -37,6 +38,14 @@ function App() {
       {/* ConsumptionSelector */}
       <div style={{ margin: "16px 0" }}>
         <ConsumptionSelector />
+      </div>
+
+      {/* Bouton TextButton */}
+      <div style={{ margin: "16px 0" }}>
+        <TextButton
+          label="Déconnexion"
+          onClick={() => alert("TextButton cliqué !")}
+        />
       </div>
 
       {/* Bouton Back */}
