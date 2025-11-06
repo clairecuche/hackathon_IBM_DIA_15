@@ -1,23 +1,39 @@
+// src/App.jsx
 import React, { useState } from "react";
 import Button from "./components/button.jsx";
 import TextInput from "./components/text_input.jsx";
 import Back from "./components/back.jsx";
 import NavBar from "./components/nav_bar.jsx";
+import DropdownButton from "./components/dropdown_button.jsx";
 
 function App() {
   const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("query"); // ✅ ajout de l’état
+  const [activeTab, setActiveTab] = useState("query"); // état pour NavBar
 
   return (
-    <div style={{ padding: "16px", width: "300px", fontFamily: "'Poppins', sans-serif" }}>
-      <h2>LLM CO2 Tracker</h2>
+    <div
+      style={{
+        padding: "16px",
+        width: "300px",
+        fontFamily: "'Poppins', sans-serif",
+      }}
+    >
+      <h2 style={{ marginBottom: "16px" }}>LLM CO2 Tracker</h2>
 
+      {/* NavBar */}
       <NavBar activeTab={activeTab} onTabChange={setActiveTab} />
 
+      {/* Dropdown */}
+      <div style={{ margin: "16px 0" }}>
+        <DropdownButton initialText="Choisir une option" />
+      </div>
+
+      {/* Bouton Back */}
       <div style={{ padding: "16px 0" }}>
         <Back onClick={() => alert("Retour !")} />
       </div>
 
+      {/* Input texte */}
       <TextInput
         label="Requête LLM"
         value={query}
@@ -25,6 +41,7 @@ function App() {
         placeholder="Tapez votre texte ici..."
       />
 
+      {/* Bouton Submit */}
       <Button
         label="Submit"
         onClick={() => alert(`Votre requête : ${query}`)}
