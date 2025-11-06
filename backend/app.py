@@ -64,6 +64,8 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     raw_response: Optional[Dict[str, Any]] = None
+    consumption: Optional[Dict[str, Any]] = None
+    computed_co2e_kg: Optional[float] = None
 
 @app.get("/")
 def root():
@@ -195,16 +197,16 @@ def predict(req: PredictRequest):
         prediction_energy= None
 
     print(prediction_energy)
+
+    # Determine energy in kgCo2e: compute from provided country, else None
+    computed_co2e_kg = None
+    computed_co2e_kg = energy.compute_co2e_kg(prediction_energy, req.country)
+
     resp = {
         "raw_response": raw,
+        "computed_co2e_kg" : computed_co2e_kg,
         
     }
-
-    
-    # Determine energy mix: prefer explicit energy_mix from client, else
-    # compute from provided country, else None
-    computed_mix = None
-    computed_mix = energy.get_energy_mix_for_country(req.country,prediction_energy)
 
     # extract total consumption reported by the model (seconds) and attach
     try:

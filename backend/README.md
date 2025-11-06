@@ -129,26 +129,6 @@ Where to look for diagnostics
   logging) will contain rows of observed predictions.
 
 
-Example request
-
-POST /predict
-
-Body:
-
-```json
-{
-  "prompt": "Explain the greenhouse effect in simple terms",
-  // either provide an explicit energy mix:
-  "energy_mix": {"solar": 0.6, "wind": 0.2, "grid": 0.2}
-  // or provide a `country` and the backend will compute a representative
-  // energy mix server-side: e.g. "country": "France"
-}
-```
-
-The response contains `metrics` (the extracted LLM consumption metrics), the
-`energy_mix` you supplied and the raw IBM prediction response in
-`raw_response` so you can inspect the full output.
-
 Notes
 - The `ibm_client` module attempts to map prediction `fields` -> `values` and
   extract the requested metric names. If the deployment does not return those
