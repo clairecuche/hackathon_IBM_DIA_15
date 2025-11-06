@@ -13,6 +13,20 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Reset global padding/margin et box-sizing */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  
+}
+
+/* Optionnel : taille minimale de la fenêtre */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+}
+
 a {
   font-weight: 500;
   color: #646cff;

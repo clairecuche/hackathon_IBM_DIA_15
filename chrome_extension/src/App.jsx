@@ -1,72 +1,32 @@
 // src/App.jsx
 import React, { useState } from "react";
-import Button from "./components/button.jsx";
-import TextInput from "./components/text_input.jsx";
-import Back from "./components/back.jsx";
-import NavBar from "./components/nav_bar.jsx";
-import DropdownButton from "./components/dropdown_button.jsx";
 import TopBar from "./components/topbar.jsx";
-import ConsumptionSelector from "./components/consuption_selector.jsx";
-import TextButton from "./components/textbutton.jsx";
+import NavBar from "./components/nav_bar.jsx";
+import HomePage from "./pages/homepage.jsx";
+import DashboardPage from "./pages/Dashboard.jsx";
 
 function App() {
-  const [query, setQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("query"); // état pour NavBar
+  const [activeTab, setActiveTab] = useState("query");
 
   return (
     <div
       style={{
-        padding: "16px",
-        width: "300px",
+        width: "100%",          // largeur totale de l'extension
+        minHeight: "100vh",     // hauteur totale de l'extension
         fontFamily: "'Poppins', sans-serif",
-        backgroundColor: "#FCFBFC", 
+        backgroundColor: "#FCFBFC",
+        margin: 0,
+        padding: 0,
+        boxSizing: "border-box",
       }}
     >
-      {/* TopBar */}
       <TopBar />
-
-      <h2 style={{ marginBottom: "16px", marginTop: "16px", color: "#212121" }}>LLM CO2 Tracker</h2>
-
-      {/* NavBar */}
       <NavBar activeTab={activeTab} onTabChange={setActiveTab} />
 
-      {/* Dropdown */}
-      <div style={{ margin: "16px 0" }}>
-        <DropdownButton initialText="Choisir une option" />
+      <div style={{ width: "100%" }}>
+        {activeTab === "query" && <HomePage />}
+        {activeTab === "dashboard" && <DashboardPage />}
       </div>
-
-      {/* ConsumptionSelector */}
-      <div style={{ margin: "16px 0" }}>
-        <ConsumptionSelector />
-      </div>
-
-      {/* Bouton TextButton */}
-      <div style={{ margin: "16px 0" }}>
-        <TextButton
-          label="Déconnexion"
-          onClick={() => alert("TextButton cliqué !")}
-        />
-      </div>
-
-      {/* Bouton Back */}
-      <div style={{ padding: "16px 0" }}>
-        <Back onClick={() => alert("Retour !")} />
-      </div>
-
-      {/* Input texte */}
-      <TextInput
-        label="Requête LLM"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Tapez votre texte ici..."
-      />
-
-      {/* Bouton Submit */}
-      <Button
-        label="Submit"
-        onClick={() => alert(`Votre requête : ${query}`)}
-        disabled={query.trim() === ""}
-      />
     </div>
   );
 }
