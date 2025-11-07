@@ -355,10 +355,15 @@ For issues and questions:
 ---
 ## Team 15 
 Claire CUCHE 
+
 Ines DARDE 
+
 Ornella DJUIDJE  
+
 Cassie DOGUET 
+
 Lena DUBOIS 
+
 Nadirath LALEYE 
 
 **Made with 🍃 for a greener AI future**
