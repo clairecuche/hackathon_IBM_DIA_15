@@ -1,291 +1,364 @@
-# Welcome on our Chrome Extention Lama Leaf 🎉
+# Lama Leaf 🍃
 
-This repository serves as a template to help you get started quickly.  
-Follow the project structure, fork the repo, and clone it locally to begin.
+**LLM CO₂ Tracker Chrome Extension**
 
----
-## Frontend – Interface
-
-### ⚙️ Technologies used
-
-- **React 19** avec **Vite** pour un rendu rapide et léger
-- **Lucide React** pour les icônes
-- **React Router DOM** pour la navigation entre pages
-- **CSS inline / global** pour un design minimaliste adapté au format popup
-- **Chrome Manifest V3** pour l’intégration dans l’extension
+Lama Leaf is a Chrome extension that helps users track and understand the carbon footprint of their Large Language Model (LLM) queries. It provides real-time CO₂ consumption estimates and visualizes environmental impact through an intuitive dashboard.
 
 ---
 
-### 📂 Structure
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Frontend Setup](#frontend-setup)
+- [Backend Setup](#backend-setup)
+- [Usage](#usage)
+- [Project Structure](#project-structure)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+
+---
+
+## 🌍 Overview
+
+This project combines a React-based Chrome extension frontend with a Python backend that leverages IBM Cloud Machine Learning to predict LLM consumption metrics. Users can:
+
+- Submit queries and see estimated CO₂ emissions
+- View consumption history and statistics
+- Compare impact across different time periods
+- Understand their environmental footprint in tangible terms (e.g., hectares of forest)
+
+---
+
+## ✨ Features
+
+### Frontend
+- **React 19** with **Vite** for fast, lightweight rendering
+- **Chrome Manifest V3** compliance
+- **Lucide React** icons for modern UI elements
+- Internal routing system for seamless navigation
+- Real-time consumption tracking and visualization
+- Customizable settings (energy mix, region selection)
+- Responsive design optimized for Chrome popup format (~300px width)
+
+### Backend
+- **FastAPI** server for high-performance API
+- **IBM Watson Machine Learning** integration
+- CO₂ consumption prediction based on LLM usage
+- Prediction logging for analytics
+- RESTful API with CORS support
+
+---
+
+## 🏗️ Architecture
 
 ```
-chrome_extension/
-├── src/
-│   ├── App.jsx                 # Structure principale de l’interface
-│   ├── main.jsx                # Point d’entrée React (rendu dans index.html)
-│   ├── assets/
-│   │   ├── cross.png
-│   │   ├── lama_loader.gif
-│   │   ├── people.png
-│   │   ├── react.svg
-│   │   └── settings.png
-├── components/
-│   ├── back.jsx                 # Back arrow button (navigation backward)
-│   ├── button.jsx               # Main styled button (CTA)
-│   ├── consuption_selector.jsx  # "Your consumption" dropdown
-│   ├── consuption.jsx           # Main CO₂ consumption display
-│   ├── dropdown_button.jsx      # Generic dropdown button with animated chevron
-│   ├── googlesearch.jsx         # Google search component / simulation CO₂ queries
-│   ├── leaf.jsx                 # Leaf icon (eco illustration or symbol)
-│   ├── nav_bar.jsx              # Navigation bar (Query / Dashboard)
-│   ├── signbar.jsx              # Info bar / signature or user status
-│   ├── text_input.jsx           # Styled input field for LLM query
-│   ├── textbutton.jsx           # Text button (like "Logout" / "Learn more")
-│   ├── topbar.jsx               # Main top bar of the extension
-│   └── tree.jsx                 # Tree icon or visual (CO₂ equivalent illustration)
-│   └── pages/
-│       ├── HomePage.jsx        # Page où on écrit la query
-│       ├── Responce_to_a_query # Page affichant la réponse 
-│       ├── Settings
-│       └── DashboardPage.jsx   # Tableau de bord CO₂
-├── index.html                  # Popup de l’extension
-├── manifest.json               # Configuration MV3 (service worker, permissions…)
-└── package.json
-
+┌─────────────────────────────────────┐
+│   Chrome Extension (React)          │
+│   - Query Input                     │
+│   - Dashboard                       │
+│   - Settings                        │
+└───────────┬─────────────────────────┘
+            │ POST /predict
+            │ { prompt, energy_mix }
+            ↓
+┌─────────────────────────────────────┐
+│   FastAPI Backend                   │
+│   - Receives query                  │
+│   - Calls IBM ML API                │
+│   - Returns metrics                 │
+└───────────┬─────────────────────────┘
+            │
+            ↓
+┌─────────────────────────────────────┐
+│   IBM Watson ML Deployment          │
+│   - Processes prompt                │
+│   - Returns token counts            │
+│   - Calculates consumption          │
+└─────────────────────────────────────┘
 ```
 
 ---
 
-### 🧩 Main components
-
-#### `Back`
-
-**File:** `src/components/back.jsx`
-
-A small button with a left-pointing chevron, typically used for navigating back.
-
-- Accepts an `onClick` handler and a `disabled` prop.
-- Changes cursor and color when disabled.
-- Fully styled with no border and subtle hover effects.
-
----
-
-#### `TextInput`
-
-**File:** `src/components/text_input.jsx`
-
-A styled text input field with a label.
-
-- Controlled component: accepts `value` and `onChange` props.
-- Supports placeholder text.
-- Font and padding follow the extension's design system.
-
----
-
-#### `ConsumptionSelector`
-
-**File:** `src/components/consuption_selector.jsx`
-
-Dropdown component to select a time range for consumption (weekly, monthly, yearly).
-
-- Displays `Your consommation` text above the selected option.
-- Chevron rotates when dropdown is open.
-- Option selection updates the displayed value.
-- Styled with rounded corners, subtle shadows, and hover effects.
-
----
-
-#### `TextButton`
-
-**File:** `src/components/textbutton.jsx`
-
-A text-only button, used for secondary actions like “Learn more” or “Log out”.
-
-- No border by default.
-- Hover effect: text shadow appears.
-- Active/click effect: text gets underlined.
-
----
-
-#### `TopBar`
-
-**File:** `src/components/topbar.jsx`
-
-Displays the top banner of the extension.
-
-- Contains the extension logo and title (*LLM CO₂ Tracker*).
-- Can include additional action buttons.
-- Fixed width to fill the extension popup.
-
----
-
-#### `NavBar`
-
-**File:** `src/components/nav_bar.jsx`
-
-Navigation bar for switching between the **HomePage** and **Dashboard**.
-
-- Highlights the active tab with an animated underline.
-- Optional secondary button (info or logout) with hover effects.
-- Fully responsive to the width of the extension.
-
----
-
-#### `GoogleSearch`
-
-**File:** `src/components/googlesearch.jsx`
-
-Component to display or interact with Google search data.
-
-- Can be used to fetch or display queries from the user’s search.
-- Styled to integrate with the extension’s theme.
-
----
-
-#### `Leaf`
-
-**File:** `src/components/leaf.jsx`
-
-A small decorative or functional icon, representing a leaf.
-
-- Can be used to indicate CO₂ or eco-related values visually.
-- Accepts size and color props.
-
----
-
-#### `SignBar`
-
-**File:** `src/components/signbar.jsx`
-
-A horizontal bar component, often used for separating sections or displaying indicators.
-
-- Customizable width, height, and color.
-- Fits within the design system of the extension.
-
----
-
-#### `Tree`
-
-**File:** `src/components/tree.jsx`
-
-Visual component to display tree graphics or data (eco-related).
-
-- Can be static or dynamic.
-- Supports custom styling and size.
-
-### 🧩 Pages
-
-#### `HomePage`
-
-**File:** `src/pages/HomePage.jsx`
-
-The main page where users can type their LLM query.
-
-- Contains a **NavBar** to switch between pages.
-- Includes a **TextInput** for entering queries.
-- Can integrate dropdowns and buttons for submitting queries.
-- Styled to match the extension’s theme, filling the popup width.
-
----
-
-#### `Responce_to_a_query`
-
-**File:** `src/pages/Responce_to_a_query.jsx`
-
-Displays the LLM’s response to the user query.
-
-- Shows the processed output in a clean, readable format.
-- Can include buttons to copy or save the response.
-- Supports integration with other components like **Back** or **TextButton** for navigation.
-
----
-
-#### `Settings`
-
-**File:** `src/pages/Settings.jsx`
-
-Page for managing extension settings.
-
-- Can include toggles, dropdowns, and input fields.
-- Allows users to customize the behavior or appearance of the extension.
-- Styled consistently with the rest of the UI.
-
----
-
-#### `DashboardPage`
-
-**File:** `src/pages/DashboardPage.jsx`
-
-CO₂ dashboard displaying statistics and visualizations.
-
-- Can include charts, **Leaf**, **Tree**, or **SignBar** components to show impact.
-- Provides an overview of user queries and their CO₂ footprint.
-- Fully styled to fill the popup width and maintain the extension theme.
-
----
-
-### 🌐 Routing and rendering
-
-#### Principales fonctionnalités :
-
-`App.jsx` handles **internal routing** and dynamic rendering of the extension’s pages.
-
-Instead of using `react-router-dom`, it relies on a **state variable `activeTab`** to determine which page to display.
-
-#### Key Features:
-
-- **Internal Navigation:**
-    - `activeTab` controls which page is visible (`settings`, `query`, `dashboard`, `response`).
-    - **TopBar** and **NavBar** remain fixed and visible on all pages.
-    - `onTabChange` is passed to pages and NavBar to allow dynamic page switching.
-- **User Query Management:**
-    - `currentQuery` stores the last input query.
-    - `selectedZone` stores the chosen country or region.
-    - `sendToBackend` sends the query to the backend and stores the response in state variables:
-        - `responseText`: text returned by the backend.
-        - `amountConsumption`: estimated CO₂ consumption.
-        - `hectareEq`: equivalent in hectares.
-        - `pourcentage`: percentage of impact or reduction.
-- **Loader Animation:**
-    - `loading` controls the display of the loader (`lamaLoader` gif).
-    - The loader appears centered with a semi-transparent overlay to indicate ongoing processing.
-
-### Highlights:
-
-- The **TopBar** stays visible on all pages.
-- Page rendering is **fully dynamic** via `activeTab`.
-- Handles **user input**, **zone selection**, and **response display** while keeping navigation fixed.
-- Loader is **responsive** and prevents interactions while waiting for the backend response.
-
----
-
-### 🪄 Design and UX
-
-- Soft, light color palette (`#FCFBFC`, `#212121`) suited for light mode
-- Typography: *Poppins*
-- Vertical, compact layout to match Chrome popup format (approx. 300px wide)
-- Pages are displayed **full height within the popup**, aligned at the top, with no outer margin
-- Interactive buttons: drop shadow on hover, underline on click
-
----
-
-### 🚀 Frontend Setup
-
-### Development
-
-```bash
-npm install
-npm run dev
-```
-
-Then load the folder in Chrome as indicated by the `@crxjs/vite-plugin`.
-
-### Production
+## 🎨 Frontend Setup
+
+### Prerequisites
+- Node.js 18+ and npm
+- Chrome browser (for testing)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd lama-leaf/chrome_extension
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Development mode**
+   ```bash
+   npm run dev
+   ```
+   
+   The extension will be built with hot-reload enabled.
+
+4. **Load extension in Chrome**
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable **Developer mode** (toggle in top-right)
+   - Click **Load unpacked**
+   - Select the `chrome_extension` folder (or `dist/` if built)
+
+### Production Build
 
 ```bash
 npm run build
 ```
 
-Then load the `dist/` folder from `chrome://extensions` → *Load unpacked*.
+Load the generated `dist/` folder in Chrome via `chrome://extensions` → **Load unpacked**.
 
---- 
+---
+
+## 🖥️ Backend Setup
+
+### Prerequisites
+- Python 3.10+
+- IBM Cloud account with Watson Machine Learning service
+- Valid IBM Cloud API key
+
+### Installation
+
+1. **Navigate to backend directory**
+   ```bash
+   cd backend
+   ```
+
+2. **Create virtual environment**
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate    # Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Set environment variable**
+   ```bash
+   export IBM_API_KEY="your_ibm_cloud_api_key"
+   # PowerShell: $env:IBM_API_KEY = "your_ibm_cloud_api_key"
+   ```
+
+### Running the Server
+
+```bash
+uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+The API will be available at `http://localhost:8000`
+
+### API Endpoints
+
+#### POST `/predict`
+Predicts CO₂ consumption for a given LLM query.
+
+
+---
+
+## 📂 Project Structure
+
+### Frontend (`chrome_extension/`)
+
+```
+chrome_extension/
+├── src/
+│   ├── App.jsx                    # Main app with routing logic
+│   ├── main.jsx                   # React entry point
+│   ├── assets/                    # Images and icons
+│   └── components/
+│       ├── back.jsx               # Back navigation button
+│       ├── button.jsx             # Primary CTA button
+│       ├── consuption_selector.jsx # Time range dropdown
+│       ├── consuption.jsx         # CO₂ display component
+│       ├── dropdown_button.jsx    # Generic dropdown
+│       ├── googlesearch.jsx       # Search integration
+│       ├── leaf.jsx               # Eco icon
+│       ├── nav_bar.jsx            # Navigation bar
+│       ├── signbar.jsx            # Info/status bar
+│       ├── text_input.jsx         # Styled input field
+│       ├── textbutton.jsx         # Text-only button
+│       ├── topbar.jsx             # Extension header
+│       ├── tree.jsx               # Tree visualization
+│       └── pages/
+│           ├── HomePage.jsx       # Query input page
+│           ├── Responce_to_a_query.jsx # Response display
+│           ├── Settings.jsx       # Settings page
+│           └── DashboardPage.jsx  # CO₂ dashboard
+├── index.html                     # Extension popup HTML
+├── manifest.json                  # Chrome MV3 configuration
+└── package.json                   # Dependencies
+```
+
+### Backend (`backend/`)
+
+```
+backend/
+├── app.py                         # FastAPI application
+├── ibm_client.py  
+├── energy.py 
+├── llama_client.py  
+├── orchestrator.py    
+├── predictor.py  
+├── transfo_input.py   # IBM ML API client
+├── requirements.txt               # Python dependencies
+          # Prediction tracking log
+```
+
+---
+
+## 🚀 Usage
+
+### For Users
+
+1. **Install the extension** in Chrome
+2. **Click the Lama Leaf icon** in your browser toolbar
+3. **Enter your LLM query** on the homepage
+4. **Select your region/energy mix** for accurate calculations
+5. **Submit** and view your CO₂ consumption estimate
+6. **Check the dashboard** to see your cumulative impact
+7. **Adjust settings** to customize tracking preferences
+
+### For Developers
+
+#### Modifying Components
+
+All UI components are in `chrome_extension/src/components/`. Each component is self-contained with inline styles following the extension's design system:
+
+- **Colors:** `#FCFBFC` (background), `#212121` (text)
+- **Typography:** Poppins font family
+- **Layout:** Vertical, compact (~300px width)
+
+#### Adding New Pages
+
+1. Create a new component in `src/pages/`
+2. Add a new case in `App.jsx`'s rendering logic
+3. Update `NavBar` or add navigation controls
+
+#### Customizing Backend Predictions
+
+Modify `backend/ibm_client.py` to:
+- Change IBM ML deployment URL
+- Adjust metric extraction logic
+- Add new consumption calculations
+
+---
+
+## 🔧 Troubleshooting
+
+### Frontend Issues
+
+**Extension doesn't load:**
+- Ensure you've run `npm install` and `npm run build`
+- Check Chrome console for errors (`chrome://extensions` → Details → Inspect views)
+- Verify `manifest.json` is valid
+
+**API calls fail:**
+- Confirm backend is running on `http://localhost:8000`
+- Check CORS settings in `backend/app.py`
+- Verify network requests in Chrome DevTools
+
+### Backend Issues
+
+**Token retrieval fails:**
+- Regenerate IBM Cloud API key
+- Ensure key has Watson ML service permissions
+- Check `IBM_API_KEY` environment variable is set
+
+**Scoring returns 401 (Unauthorized):**
+- Token may be expired—restart the server
+- Verify API key is valid and active
+
+**Scoring returns 404:**
+- IBM ML deployment URL may be incorrect
+- Deployment might be private (requires VPN/IBM network)
+- Check deployment status in IBM Cloud console
+
+**Predictions are null:**
+- IBM ML response format may have changed
+- Check `backend/ibm_client.py` field mapping
+- Review server logs for raw response data
+
+### Diagnostics
+
+- **Backend logs:** Terminal running `uvicorn` shows HTTP errors and stack traces
+- **Prediction tracking:** Check `backend/logs/predictions.csv` for logged predictions
+- **Chrome console:** Right-click extension → Inspect → Console tab
+
+---
+
+## 🛠️ Technology Stack
+
+### Frontend
+- React 19
+- Vite
+- Lucide React
+- Chrome Manifest V3
+- CSS (inline + global)
+
+### Backend
+- Python 3.10+
+- FastAPI
+- IBM Watson Machine Learning SDK
+- Uvicorn
+- Pandas (for logging)
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+## 📝 License
+
+This project is provided as a template. Please add your own license file.
+
+---
+
+## 🙏 Acknowledgments
+
+- IBM Watson for Machine Learning capabilities
+- Chrome Extensions team for Manifest V3
+- React and Vite communities
+
+---
+
+## 📧 Support
+
+For issues and questions:
+- Check the [Troubleshooting](#troubleshooting) section
+- Review backend logs and Chrome console
+- Open an issue in the repository
+
+---
+
+---
+## Team 15 
+Claire CUCHE 
+Ines DARDE 
+Ornella DJUIDJE  
+Cassie DOGUET 
+Lena DUBOIS 
+Nadirath LALEYE 
+
+**Made with 🍃 for a greener AI future**
