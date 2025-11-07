@@ -2,7 +2,7 @@
 
 **LLM CO₂ Tracker Chrome Extension**
 
-Lama Leaf is a Chrome extension that helps users track and understand the carbon footprint of their Large Language Model (LLM) queries. It provides real-time CO₂ consumption estimates and visualizes environmental impact through an intuitive dashboard.
+Lama Leaf is a Chrome extension that helps users track and understand the carbon footprint of their Large Language Model (LLM) queries. It provides real-time CO₂ consumption estimates and visualizes environmental impact through an intuitive dashboard. It also calls Llama API to return the response to the prompt.
 
 ---
 
@@ -355,10 +355,15 @@ For issues and questions:
 ---
 ## Team 15 
 Claire CUCHE 
+
 Ines DARDE 
+
 Ornella DJUIDJE  
+
 Cassie DOGUET 
+
 Lena DUBOIS 
+
 Nadirath LALEYE 
 
 **Made with 🍃 for a greener AI future**
