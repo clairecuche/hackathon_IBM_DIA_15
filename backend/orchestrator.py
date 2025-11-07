@@ -159,7 +159,7 @@ def process_prompt(
             print("⚠️  Aucune prédiction d'énergie reçue d'IBM")
             
         timing.log_step("ibm_call_end")
-        
+        result.ibm_prediction = result.ibm_prediction/1000 if result.ibm_prediction is not None else None
         # 5. Calcul CO2 si pays fourni
         if country:
             print(f"🌍 Calcul des émissions CO2 pour {country}...")

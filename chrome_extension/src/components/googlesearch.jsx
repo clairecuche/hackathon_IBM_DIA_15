@@ -1,6 +1,6 @@
 import React from "react";
 
-const GoogleResearch = ({ count }) => {
+const GoogleResearch = ({ count }) => { 
   return (
     <div
       style={{
@@ -37,7 +37,7 @@ const GoogleResearch = ({ count }) => {
 
       {/* Texte avec variable */}
       <span>
-        {count} Google Research
+        {<div>{Math.max(count, 1)}</div>} Google Research
       </span>
     </div>
   );
