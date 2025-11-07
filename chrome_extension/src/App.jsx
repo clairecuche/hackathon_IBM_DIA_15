@@ -23,32 +23,37 @@ function App() {
       alert("Veuillez remplir la requête et sélectionner un pays !");
       return;
     }
+    const prompt = query;
+    const payload = { prompt, country, model_name :"llama3.2" , temperature:0.7};
+    console.log("Envoi au backend :", payload);
 
-    const payload = { query, country };
+   try {
+    const response = await fetch("http://localhost:8000/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-    try {
-      const response = await fetch("http://localhost:8000/predict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+    if (!response.ok) throw new Error(`Erreur: ${response.status}`);
 
-      if (!response.ok) throw new Error(`Erreur: ${response.status}`);
+    const data = await response.json();
 
-      const data = await response.json();
+    // Mapping des données du backend vers vos states
+    setResponseText(data.llama_response);
+    setAmountConsumption(data.energy_consumption_kwh);
+    setHectareEq(data.equivalents.forest_area_acres);
+    setPourcentage(data.equivalents.google_searches);
 
-      // Stockage dans les variables (states)
-      setResponseText(data.Response);
-      setAmountConsumption(data.amount_consumption);
-      setHectareEq(data.hectare_eq);
-      setPourcentage(data.pourcentage);
-
-      console.log("Données reçues :", data);
-    } catch (error) {
-      console.error("Erreur lors de l'envoi :", error);
-      alert("Erreur lors de l'envoi au backend.");
-    }
-  };
+    console.log("Données reçues :", data);
+    
+    // Passer à la page de réponse
+    setActiveTab("response");
+    
+  } catch (error) {
+    console.error("Erreur lors de l'envoi :", error);
+    alert("Erreur lors de l'envoi au backend.");
+  }
+};
 
   return (
     <div

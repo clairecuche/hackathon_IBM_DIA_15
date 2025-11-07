@@ -18,9 +18,9 @@ app = FastAPI(
 
 class PredictRequest(BaseModel):
     prompt: str
-    model_name: str = "llama3.2"
+    model_name: Optional[str] = "llama3.2"
     country: Optional[str] = None
-    temperature: float = 0.7
+    temperature: Optional[float] = 0.7
     
     class Config:
         schema_extra = {
