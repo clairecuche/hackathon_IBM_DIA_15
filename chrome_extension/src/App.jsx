@@ -6,6 +6,8 @@ import HomePage from "./pages/homepage.jsx";
 import DashboardPage from "./pages/Dashboard.jsx";
 import ResponseToAQuery from "./pages/Responce_to_a_query.jsx";
 import Settings from "./pages/Settings.jsx";
+import lamaLoader from "./assets/lama_loader.gif";
+
 
 function App() {
   const [activeTab, setActiveTab] = useState("settings");
@@ -17,6 +19,11 @@ function App() {
   const [amountConsumption, setAmountConsumption] = useState(0);
   const [hectareEq, setHectareEq] = useState(0);
   const [pourcentage, setPourcentage] = useState(0);
+  const [loading, setLoading] = useState(false); 
+
+
+
+
 
   const sendToBackend = async (query, country) => {
     if (!query || !country) {
@@ -28,6 +35,8 @@ function App() {
     console.log("Envoi au backend :", payload);
 
    try {
+    setLoading(true);
+
     const response = await fetch("http://localhost:8000/predict", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,6 +62,9 @@ function App() {
     console.error("Erreur lors de l'envoi :", error);
     alert("Erreur lors de l'envoi au backend.");
   }
+  finally {
+      setLoading(false); 
+    }
 };
 
   return (
@@ -102,6 +114,28 @@ function App() {
             pourcentage={pourcentage}
           />
         )}
+        {/* Loader */}
+        {loading && (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              backgroundColor: "rgb(168 168 168 / 0.8)",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              zIndex: 9999,
+            }}
+          >
+            <img
+              src={lamaLoader}
+              alt="Chargement..."
+              style={{ width: "200px", height: "200px" }}
+            />
+          </div>
+  )}
+
+
       </div>
     </div>
   );
