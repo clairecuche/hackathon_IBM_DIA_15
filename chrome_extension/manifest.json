@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "LLM CO2 Tracker",
+  "version": "0.1.0",
+  "description": "Visualiser l’impact CO2 d’une requête LLM",
+  "icons": {
+    "48": "icon.png"
+  },
+  "action": {
+    "default_popup": "index.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "src/background/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/content.js"]
+    }
+  ],
+  "permissions": ["storage", "tabs"],
+  "web_accessible_resources": [
+    {
+      "resources": ["**/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
