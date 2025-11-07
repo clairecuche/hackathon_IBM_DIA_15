@@ -28,7 +28,7 @@ class TimingLogger:
         self.steps[step_name] = time.time_ns() - self.start_time
     
     def get_timings(self) -> Dict[str, float]:
-        return {k: v/1e9 for k, v in self.steps.items()}  # convertit en secondes
+        return {k: v for k, v in self.steps.items()}  # convertit en secondes
 
 
 class ProcessingResult:

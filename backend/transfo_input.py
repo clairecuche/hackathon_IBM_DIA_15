@@ -15,6 +15,8 @@ def encode_model(model_name: str) -> int:
     """Encode le nom du modèle en entier."""
     return MODEL_ENCODING.get(model_name, -1)
 
+
+
 def calculate_metrics_from_texts(prompt: str, response: str,
                                  load_duration: float,
                                  prompt_duration: float,
@@ -23,12 +25,12 @@ def calculate_metrics_from_texts(prompt: str, response: str,
     """
     Calcule tous les indicateurs à partir du prompt et de la réponse.
     
-    Durées en secondes (s).
+    Durées en nanosecondes (ns).
     """
-    # Validation des durées et utilisation d'une valeur minimale de 1ns si nécessaire
-    load_duration = max(1, load_duration)
-    prompt_duration = max(1, prompt_duration)
-    response_duration = max(1, response_duration)
+    # Validation des durées avec un minimum de 1e-9 secondes
+    load_duration = max(1e-9, load_duration)
+    prompt_duration = max(1e-9, prompt_duration)
+    response_duration = max(1e-9, response_duration)
 
     # Charger le tokenizer correspondant au modèle
     #tokenizer = AutoTokenizer.from_pretrained(model_name.split(":")[0])
@@ -46,14 +48,15 @@ def calculate_metrics_from_texts(prompt: str, response: str,
     # Calcul de la durée totale
     total_inference_duration = load_duration + prompt_duration + response_duration
 
+    # Conversion des durées en nanosecondes pour la sortie
     metrics = {
         "prompt_speed_tps": prompt_speed_tps,
         "response_speed_tps": response_speed_tps,
-        "load_duration": load_duration,
-        "prompt_duration": prompt_duration,
-        "response_duration": response_duration,
-        "total_duration": total_inference_duration,
-        "total_inference_duration": total_inference_duration,
+        "load_duration": int(load_duration * 1_000_000_000),
+        "prompt_duration": int(prompt_duration * 1_000_000_000),
+        "response_duration": int(response_duration * 1_000_000_000),
+        "total_duration": int(total_inference_duration * 1_000_000_000),
+        "total_inference_duration": int(total_inference_duration * 1_000_000_000),
         "prompt_token_length": prompt_token_length,
         "response_token_length": response_token_length,
         "total_token_length": total_token_length,
@@ -61,7 +64,6 @@ def calculate_metrics_from_texts(prompt: str, response: str,
     }
 
     return metrics
-
 """
 #Exemple d'utilisation 
 if __name__ == "__main__":
